@@ -1,4 +1,4 @@
-module generate_jwt
+module github.com/cbcwestwolf/generate_jwt
 
 go 1.19
 
