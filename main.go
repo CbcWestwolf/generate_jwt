@@ -4,13 +4,13 @@ import (
 	"crypto/rsa"
 	"flag"
 	"fmt"
-	jwaRepo "github.com/lestrrat-go/jwx/v2/jwa"
-	jwsRepo "github.com/lestrrat-go/jwx/v2/jws"
-	jwtRepo "github.com/lestrrat-go/jwx/v2/jwt"
 	"log"
 	"time"
 
+	jwaRepo "github.com/lestrrat-go/jwx/v2/jwa"
 	jwkRepo "github.com/lestrrat-go/jwx/v2/jwk"
+	jwsRepo "github.com/lestrrat-go/jwx/v2/jws"
+	jwtRepo "github.com/lestrrat-go/jwx/v2/jwt"
 )
 
 var (
