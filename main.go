@@ -70,6 +70,7 @@ func init() {
 }
 
 func main() {
+	flag.Parse()
 	jwt := jwtRepo.New()
 	var signedTokenString []byte
 	var err error
