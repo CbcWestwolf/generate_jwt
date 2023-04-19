@@ -2,15 +2,16 @@ package main
 
 import (
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"flag"
 	"fmt"
 	"log"
 	"time"
 
-	jwaRepo "github.com/lestrrat-go/jwx/v2/jwa"
-	jwkRepo "github.com/lestrrat-go/jwx/v2/jwk"
-	jwsRepo "github.com/lestrrat-go/jwx/v2/jws"
-	jwtRepo "github.com/lestrrat-go/jwx/v2/jwt"
+	jwaRepo "github.com/lestrrat-go/jwx/jwa"
+	jwsRepo "github.com/lestrrat-go/jwx/jws"
+	jwtRepo "github.com/lestrrat-go/jwx/jwt"
 )
 
 var (
@@ -42,6 +43,15 @@ XlHPNwKBgQDC45gv8aRxJXwSjpCXHnnzoWAJHBOXIpTbQOVdGbuMRr5RAh4CVFsp
 03m9HNt6/h9glwk7NYwbGgOlKhRxr/DUTkumu0tdfYN+tLU83mBeNw==
 -----END RSA PRIVATE KEY-----`
 
+	publicKeyString = `-----BEGIN PUBLIC KEY-----
+MIIBCgKCAQEAq8G5n9XBidxmBMVJKLOBsmdOHrCqGf17y9+VUXingwDUZxRp2Xbu
+LZLbJtLgcln1lC0L9BsogrWf7+pDhAzWovO6Ai4Aybu00tJ2u0g4j1aLiDdsy0gy
+vSb5FBoL08jFIH7t/JzMt4JpF487AjzvITwZZcnsrB9a9sdn2E5B/aZmpDGi2+Is
+f5osnlw0zvveTwiMo9ba416VIzjntAVEvqMFHK7vyHqXbfqUPAyhjLO+iee99Tg5
+AlGfjo1s6FjeML4xX7sAMGEy8FVBWNfpRU7ryTWoSn2adzyA/FVmtBvJNQBCMrrA
+hXDTMJ5FNi8zHhvzyBKHU0kBTS1UNUbP9wIDAQAB
+-----END PUBLIC KEY-----`
+
 	sub    = flag.String("sub", "user", "The 'sub' of the JWT")
 	email  = flag.String("email", "email", "The 'email' of the JWT")
 	iat    = flag.Int64("iat", time.Now().Unix(), "The 'iat' of the JWT")
@@ -58,15 +68,25 @@ type pair struct {
 }
 
 func init() {
-	var ok bool
-	if v, rest, err := jwkRepo.DecodePEM(([]byte)(privateKeyString)); err != nil {
-		log.Println(err.Error())
+	var err error
+	b, _ := pem.Decode(([]byte)(privateKeyString))
+	if b == nil || b.Type != "RSA PRIVATE KEY" {
 		log.Fatal("Error in decode private key")
-	} else if len(rest) > 0 {
-		log.Fatal("Rest in decode private key")
-	} else if priKey, ok = v.(*rsa.PrivateKey); !ok {
-		log.Fatal("Wrong type of private key")
 	}
+	priKey, err = x509.ParsePKCS1PrivateKey(b.Bytes)
+	if err != nil {
+		log.Fatal("Error in decode private key")
+	}
+
+	pubKey = &priKey.PublicKey
+	pkcs1Bytes := x509.MarshalPKCS1PublicKey(pubKey)
+
+	// 将字节切片使用 PEM 编码
+	pemBytes := pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: pkcs1Bytes,
+	})
+	fmt.Println(string(pemBytes))
 }
 
 func main() {
@@ -100,7 +120,7 @@ func main() {
 			log.Fatal("Error when set header")
 		}
 	}
-	if signedTokenString, err = jwtRepo.Sign(jwt, jwtRepo.WithKey(jwaRepo.RS256, priKey, jwsRepo.WithProtectedHeaders(header))); err != nil {
+	if signedTokenString, err = jwtRepo.Sign(jwt, jwaRepo.RS256, priKey, jwtRepo.WithHeaders(header)); err != nil {
 		log.Println(err)
 		log.Fatal("Error when sign")
 	} else {
